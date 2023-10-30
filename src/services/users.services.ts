@@ -4,22 +4,28 @@ import { RegisterReqBody } from '~/models/requests/User.requests'
 import { hashPassword } from '~/utils/crypto'
 import { signToken } from '~/utils/jwt'
 import { TokenType } from '~/constants/enums'
-
+import RefreshToken from '~/models/schemas/RefreshToken.schema'
+import { ObjectId } from 'mongodb'
 class UserService {
   //hàm nhận vào user_id và bỏ vào payload để tạo access_token
   private signAccessToken(user_id: string) {
     return signToken({
-      payload: { user_id, token_type: TokenType.RefreshToken },
-      options: { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN }
+      payload: { user_id, token_type: TokenType.AccessToken },
+      options: { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_IN }
     })
   }
-  //hàm nhận vào user_id và bỏ vào payload để tạo access_token
+  //hàm nhận vào user_id và bỏ vào payload để tạo refresh_token
   private signRefreshToken(user_id: string) {
     return signToken({
       payload: { user_id, token_type: TokenType.RefreshToken },
       options: { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN }
     })
   }
+  //hàm ký access_token và refresh_token
+  private signAccessAndRefreshToken(user_id: string) {
+    return Promise.all([this.signAccessToken(user_id), this.signRefreshToken(user_id)])
+  }
+
   async checkEmailExist(email: string) {
     const user = await databaseService.users.findOne({ email })
     return Boolean(user)
@@ -34,11 +40,28 @@ class UserService {
       })
     )
     const user_id = result.insertedId.toString()
-    const [accessToken, refreshToken] = await Promise.all([
-      this.signAccessToken(user_id),
-      this.signRefreshToken(user_id)
-    ])
-    return { accessToken, refreshToken }
+    const [access_token, refresh_tokens] = await this.signAccessAndRefreshToken(user_id)
+    //lưu refresh_token vào db
+    await databaseService.refreshToken.insertOne(
+      new RefreshToken({
+        token: refresh_tokens,
+        user_id: new ObjectId(user_id)
+      })
+    )
+    return { access_token, refresh_tokens }
+  }
+
+  async login(user_id: string) {
+    //dùng user_id để tạo access_token và refresh_token
+    const [access_token, refresh_tokens] = await this.signAccessAndRefreshToken(user_id)
+    //lưu refresh_token vào db
+    await databaseService.refreshToken.insertOne(
+      new RefreshToken({
+        token: refresh_tokens,
+        user_id: new ObjectId(user_id)
+      })
+    )
+    return { access_token, refresh_tokens }
   }
 }
 
