@@ -6,6 +6,7 @@ import {
   loginController,
   registerController,
   resendEmailVerifyController,
+  resetPasswordController,
   verifyForgotPasswordTokenController
 } from '~/controllers/users.controllers'
 import {
@@ -15,6 +16,7 @@ import {
   loginValidator,
   refreshTokenValidator,
   registerValidator,
+  resetPasswordValidator,
   verifyForgotPasswordTokenValidator
 } from '~/middlewares/users.middlewares'
 import { wrapAsync } from '~/utils/handlers'
@@ -73,7 +75,7 @@ headeers: {Authorization: Bearer <access_token>}
 usersRouter.post('/resend-email-verify', accessTokenValidator, wrapAsync(resendEmailVerifyController))
 
 /*
-des: cung cấp email để reset password, gữi email cho người dùng
+des: khi ng dùng quên mk , họ gửi email đẻ xin mình tạo cho họ forgotpassword
 path: /forgot-password
 method: POST
 Header: không cần, vì  ngta quên mật khẩu rồi, thì sao mà đăng nhập để có authen đc
@@ -96,5 +98,19 @@ usersRouter.post(
   '/verify-forgot-password',
   verifyForgotPasswordTokenValidator,
   wrapAsync(verifyForgotPasswordTokenController)
+)
+
+/*
+des: reset password
+path: '/reset-password'
+method: POST
+Header: không cần, vì  ngta quên mật khẩu rồi, thì sao mà đăng nhập để có authen đc
+body: {forgot_password_token: string, password: string, confirm_password: string}
+*/
+usersRouter.post(
+  '/reset-password',
+  resetPasswordValidator,
+  verifyForgotPasswordTokenValidator,
+  wrapAsync(resetPasswordController)
 )
 export default usersRouter
