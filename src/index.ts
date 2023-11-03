@@ -15,10 +15,6 @@ app.get('/', (req, res) => {
 app.use('/users', usersRouter)
 //localhost:3000/users/tweets
 
-app.use((err: any, req: Request, res: Response, next: Function) => {
-  console.log('error handler tổng nè')
-  res.status(400).json({ message: err.message })
-})
 //app sử dụng một error handler tổng
 app.use(defaultErrorHandler)
 app.listen(PORT, () => {
